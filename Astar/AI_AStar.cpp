@@ -42,8 +42,6 @@ struct INode	//IDA*中节点的定义
 	int G;
 	int H;
 	int F = MAXF;
-	bool found=false;		//标记这条路径有没有找到后续节点
-	int cost=MAXF;		//真实的消耗
 	INode* Child;
 };
 
@@ -288,7 +286,7 @@ void A_Star()
 	}
 }
 
-INode* NewNode(int r, int c,int G)	//为深度优先搜索创建一个新的节点
+INode* NewNode(int r, int c,int G)	//为深度优先搜索创建一个新的节点		//想得到真实的消耗值，只需要在得到路径以后跑到底就可以了，反正要打印的
 {
 	int H = (endr - r) + (endc - c);
 	INode* NewNode = new INode;
@@ -297,20 +295,20 @@ INode* NewNode(int r, int c,int G)	//为深度优先搜索创建一个新的节�
 	NewNode->G = G;
 	NewNode->H = H;
 	NewNode->F = G + H;
-	if (H == 0)
-		NewNode->found = true;
-	NewNode->cost=G;
 	NewNode->Child = NULL;
 	return NewNode;
 }
 
 int plusc[4] = { 1,0,-1,0 };
 int plusr[4] = { 0,1,0,-1 };
-INode* DFS(int maxf,INode* p)		//max最大深度，depth当前深度,p父节点
+bool DFS(int maxf,INode* p)		//max最大深度，depth当前深度,p父节点
 {
 	if (p->F > maxf)
-		return NULL;
+		return false;
+	if (/*找到了*/)
+		return true;
 	INode* Next;
+	bool found = false;
 	for (int i = 0; i < 4; i++)
 	{
 		int r = p->row + plusr[i];
@@ -319,9 +317,14 @@ INode* DFS(int maxf,INode* p)		//max最大深度，depth当前深度,p父节点
 			Next = NewNode(r, c, p->G + 1);
 		else
 			continue;
-		//待完善
+		found = DFS(maxf, Next);
+		if (found)
+		{
+			p->Child = Next;
+			break;
+		}
 	}
-	
+	return found;
 }
 
 void IDA_Star()
