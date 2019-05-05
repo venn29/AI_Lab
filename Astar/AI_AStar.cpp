@@ -9,6 +9,14 @@ using namespace std;
 int* Dis;		//距离表
 
 	//堆的数据结构应该是 元素ID(i*m+j)，根据元素ID到距离表中查询即可
+struct Node			//堆中的节点定义
+{
+	int x,y;
+	int G;
+	int H;
+	int F;
+}
+
 class MinHeap
 {
 private:
