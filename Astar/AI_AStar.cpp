@@ -44,6 +44,7 @@ struct INode	//IDA*中节点的定义
 	int F = MAXF;
 	bool found=false;		//标记这条路径有没有找到后续节点
 	int cost=MAXF;		//真实的消耗
+	INode* Child;
 };
 
 class MinHeap
@@ -287,7 +288,7 @@ void A_Star()
 	}
 }
 
-Node* NewNode(int r, int c,int G)	//为深度优先搜索创建一个新的节点
+INode* NewNode(int r, int c,int G)	//为深度优先搜索创建一个新的节点
 {
 	int H = (endr - r) + (endc - c);
 	INode* NewNode = new INode;
@@ -299,63 +300,28 @@ Node* NewNode(int r, int c,int G)	//为深度优先搜索创建一个新的节�
 	if (H == 0)
 		NewNode->found = true;
 	NewNode->cost=G;
+	NewNode->Child = NULL;
+	return NewNode;
 }
 
-Node* DFS(int max, int depth,INode* p)		//max最大深度，depth当前深度,p父节点
+int plusc[4] = { 1,0,-1,0 };
+int plusr[4] = { 0,1,0,-1 };
+INode* DFS(int maxf,INode* p)		//max最大深度，depth当前深度,p父节点
 {
-	if (depth > max)
+	if (p->F > maxf)
 		return NULL;
-	depth++;
-	Node* Current[4] = { NULL };
-	Node* Temp;
-	int flag[4] = { 65535 };	//决定要选择哪一条路径先走
-	//R
-	int r = p->row;
-	int c = p->col+1; 
-	if (Pass(r, c))
-		Current[0] = NewNode(r, c, p->G + 1);
-	//D
-	int r = p->row+1;
-	int c = p->col;
-	if (Pass(r, c))
+	INode* Next;
+	for (int i = 0; i < 4; i++)
 	{
-		Temp = NewNode(r, c, p->G + 1);
-		if (Temp->F < Current[0]->F || Current[0] == NULL)
-		{
-			Current[1] = Current[0];
-			Current[0] = Temp;
-		}
+		int r = p->row + plusr[i];
+		int c = p->col + plusc[i];
+		if (Pass(r, c))
+			Next = NewNode(r, c, p->G + 1);
+		else
+			continue;
+		//待完善
 	}
-	//L
-	int r = p->row;
-	int c = p->col - 1;
-	if (Pass(r, c))
-	{
-		Temp = NewNode(r, c, p->G + 1);
-		int i;
-		for ( i = 0; Current[i] != NULL &&Current[i]->F <= Temp->F ; i++);
-		if(i!=2)
-		{
-			for (int j = 2; j > i; j--)
-				Current[j] = Current[j - 1];
-			Current[i] = Temp;
-		}
-	}
-	//U
-	int r = p->row-1;
-	int c = p->col;
-	if (Pass(r, c))
-	{
-		Temp = NewNode(r, c, p->G + 1);
-		int i;
-		for (i = 0; Current[i] != NULL && Current[i]->F <= Temp->F; i++);
-		if (i != 3)
-		{
-			for (int j = 3; j > i; j--)
-				Current[j] = Current[j - 1];
-			Current[i] = Temp;
-		}
-	}
+	
 }
 
 void IDA_Star()
