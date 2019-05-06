@@ -2,7 +2,7 @@
 //
 
 
-#include "pch.h" 
+//#include "pch.h" 
 #include <iostream>
 #include<vector>
 #include<fstream>
@@ -12,12 +12,13 @@
 #include<math.h>
 const int SumNode = 450;			//18*25
 #define MAXF 65535;
-#define limitF 400;			//迭代深度的最大上限，如果超过了，就说明找不到了
+
 using namespace std;
 
 int endr,endc;
 int beginr,beginc;
 int rmax,cmax;
+int limitF;			//迭代深度的最大上限，如果超过了，就说明找不到了
 
 int **Map;
 int **Status;
@@ -218,7 +219,7 @@ void A_Star()
 	int GC;
 	int HC;
 	int FC;
-	begin=clock();
+	begintime=clock();
 	Node* EndNode = new Node;
 	EndNode->row = endr;
 	EndNode->col = endc;
@@ -313,7 +314,7 @@ bool DFS(int maxf,INode* p)		//max最大深度，depth当前深度,p父节点
 {
 	if (p->F > maxf)
 		return false;
-	if (p->row=endr&&p->col=endc)
+	if (p->row==endr&&p->col==endc)
 		return true;
 	INode* Next;
 	bool found = false;
@@ -355,7 +356,7 @@ void IDA_Star()
 	bool found=false;
 
 	begintime=clock();
-	while (!found && mafx<limitF)		//
+	while (!found && maxf<limitF)		//
 	{
 		maxf++;
 		found = DFS(maxf,StartNode);
@@ -375,16 +376,16 @@ void IDA_Star()
 		if(Current->row == Next->row)
 		{
 			if(Next->col>Current->col)
-				path.push_back("R");
+				path.push_back('R');
 			else
-				path.push_back("L");
+				path.push_back('L');
 		}
 		else
 		{
 			if(Next->col > Current->col)
-				path.push_back("D");
+				path.push_back('D');
 			else
-				path.push_back("U");
+				path.push_back('U');
 		}
 	}
 	ofstream fout("output_IDA.txt");
@@ -399,7 +400,7 @@ int main()
 {
 	int func;
 	string fname;
-	printf("请输入您要选择的输入：\n1、18*25\n2、30*60\n");
+	printf("请输入您要选择的图：\n1、18*25\n2、30*60\n");
 	//读文件：
 	scanf("%d",&func);
 	if(func==1)
@@ -446,9 +447,11 @@ int main()
 	{
 		beginr=1;beginc=0;
 		endr=16;endc=24;
+		limitF = 400;
 	}
 	else
 	{
+		limitF = 900;
 		fin >> Buffer;
 		beginr=atof(Buffer.c_str());
 		fin >> Buffer;
@@ -462,14 +465,14 @@ int main()
 	if (Map[beginr][beginc] == 1||beginr < 0 || beginr>rmax-1||beginc < 0 || beginc>cmax-1)
 	{
 		printf("起点不合法");
-		return;
+		return 0;
 	}
 	if (Map[endr][endc] == 1||endr < 0 || endr>rmax-1||endc < 0 || endc>cmax-1)
 	{
 		printf("终点不合法");
-		return;
+		return 0;
 	}
 	A_Star();
 	IDA_Star();
-	return;
+	return 0;
 }
