@@ -296,7 +296,7 @@ void A_Star()
 
 INode* NewNode(int r, int c,int G)	//为深度优先搜索创建一个新的节点		//想得到真实的消耗值，只需要在得到路径以后跑到底就可以了，反正要打印的
 {
-	int H = (endr - r) + (endc - c);
+	int H = abs(endr - r) + abs(endc - c);
 	INode* NewNode = new INode;
 	NewNode->row = r;
 	NewNode->col = c;
@@ -466,7 +466,7 @@ int main()
 	}
 	if (Map[endr][endc] == 1||endr < 0 || endr>rmax-1||endc < 0 || endc>cmax-1)
 	{
-		printf("起点不合法");
+		printf("终点不合法");
 		return;
 	}
 	A_Star();
