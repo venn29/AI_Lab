@@ -2,7 +2,7 @@
 //
 
 
-#include "pch.h" 
+//#include "pch.h" 
 #include <iostream>
 #include<vector>
 #include<fstream>
@@ -204,7 +204,10 @@ void Handle(MinHeap* heap, Node* P, int r, int c)		//根据父节点，处理周
 			i = heap->Serch(r, c);
 			Node* C = heap->GetNode(i);
 			if (C->G > P->G + 1)
+			{
 				heap->Decrease(i, P->G + 1);
+				C->Parent = P;
+			}
 		}
 		return;
 	}
@@ -518,6 +521,6 @@ int main()
 		return 0;
 	}
 	A_Star();
-	IDA_Star();
+	//IDA_Star();
 	return 0;
 }
