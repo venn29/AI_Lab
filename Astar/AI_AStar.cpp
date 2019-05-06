@@ -9,17 +9,18 @@
 #include<string>
 #include<stdio.h>
 #include<time.h>
+#include<math.h>
 const int SumNode = 450;			//18*25
 #define MAXF 65535;
 #define limitF 400;			//迭代深度的最大上限，如果超过了，就说明找不到了
 using namespace std;
 
-const int endr = 16;
-const int endc = 24;
+int endr,endc;
+int beginr,beginc;
+int rmax,cmax;
 
-
-int Map[18][25];
-int Status[18][25] = { 0 };
+int **Map;
+int **Status;
 
 enum Flag
 {
@@ -172,9 +173,9 @@ bool Pass(int r,int c)			//判断当前点是否是一个可通过的节点
 {
 	if (Map[r][c] == 1)
 		return false;
-	if (r < 0 || r>16)
+	if (r < 0 || r>rmax-1)
 		return false;
-	if (c < 0 || c>24)
+	if (c < 0 || c>cmax-1)
 		return false;
 	else
 		return true;
@@ -190,7 +191,7 @@ void Handle(MinHeap* heap ,Node* P,int r,int c)		//根据父节点，处理周�
 			NewNode->row = r;
 			NewNode->col = c;
 			NewNode->G = P->G + 1;
-			NewNode->H = (16 - r) + (24 - c);
+			NewNode->H = abs(endr - r) + abs(endc - c);
 			NewNode->F = NewNode->G + NewNode->H;
 			NewNode->Parent = P;
 			heap->Insert(NewNode);
@@ -219,16 +220,16 @@ void A_Star()
 	int FC;
 	begin=clock();
 	Node* EndNode = new Node;
-	EndNode->row = 16;
-	EndNode->col = 24;
+	EndNode->row = endr;
+	EndNode->col = endc;
 	EndNode->Parent = NULL;
 	GC = 0;
-	HC = (16 - 1) + (24 - 0);
+	HC = abs(endr - beginr) + abs(endc - beginc);
 	FC = GC + HC;
 
 	Node* StartNode = new Node;
-	StartNode->row = 1;
-	StartNode->col = 0;
+	StartNode->row = beginc;
+	StartNode->col = beginr;
 	StartNode->G = GC;
 	StartNode->H = HC;
 	StartNode->F = FC;
@@ -342,7 +343,7 @@ void IDA_Star()
 	int HC;
 	int FC;
 	GC = 0;
-	HC = (16 - 1) + (24 - 0);
+	HC = abs((endr - beginr)) + abs((endc - beginc));
 	FC = GC + HC;
 	INode* StartNode = new INode;
 	StartNode->row = 1;
@@ -396,25 +397,77 @@ void IDA_Star()
 
 int main()
 {
+	int func;
+	string fname;
+	printf("请输入您要选择的输入：\n1、18*25\n2、30*60\n");
 	//读文件：
+	scanf("%d",&func);
+	if(func==1)
+	{
+		fname="input.txt";
+		rmax=18;
+		cmax=25;
+	}
+	else
+	{
+		fname="input2.txt";
+		rmax=30;
+		cmax=60;
+	}
 	string Buffer;
-	string fname = "map2.txt";
 	ifstream fin(fname);
-
-	int i = 0;
-	int j = 0;
 	if (!fin)
 	{
 		printf("error:无法打开文件\n");
 		exit(0);
 	}
-	for (int i = 0; i < 18; i++)
+	//初始化map和status：
+	Map=new int*[rmax];
+	Status=new int*[rmax];
+	for(int i=0;i<rmax;i++)
 	{
-		for (int j = 0; j < 25; j++)
+		int *rowM=new int[cmax];
+		Map[i]=rowM;
+		int *rowS=new int[cmax];
+		Status[i]=rowS;
+		memset(rowM,0,cmax);
+		memset(rowS,0,cmax);
+	}
+	//
+	for (int i = 0; i < rmax; i++)
+	{
+		for (int j = 0; j < cmax; j++)
 		{
 			fin >> Buffer;
 			Map[i][j] = atof(Buffer.c_str()); 
 		}
+	}
+	if(func==1)
+	{
+		beginr=1;beginc=0;
+		endr=16;endc=24;
+	}
+	else
+	{
+		fin >> Buffer;
+		beginr=atof(Buffer.c_str());
+		fin >> Buffer;
+		beginc=atof(Buffer.c_str());
+		fin >> Buffer;
+		endr=atof(Buffer.c_str());
+		fin >> Buffer;
+		endc =atof(Buffer.c_str());
+	}
+	//判断起点和终点是否可达
+	if (Map[beginr][beginc] == 1||beginr < 0 || beginr>rmax-1||beginc < 0 || beginc>cmax-1)
+	{
+		printf("起点不合法");
+		return;
+	}
+	if (Map[endr][endc] == 1||endr < 0 || endr>rmax-1||endc < 0 || endc>cmax-1)
+	{
+		printf("起点不合法");
+		return;
 	}
 	A_Star();
 	IDA_Star();
