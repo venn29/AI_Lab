@@ -8,8 +8,10 @@
 #include<fstream>
 #include<string>
 #include<stdio.h>
-const int SumNode = 450;			//为堆空间分配的初始容量，可以有助于提升vector的效率，暂定为200
+#include<time.h>
+const int SumNode = 450;			//18*25
 #define MAXF 65535;
+#define limitF 400;			//迭代深度的最大上限，如果超过了，就说明找不到了
 using namespace std;
 
 const int endr = 16;
@@ -209,10 +211,13 @@ void Handle(MinHeap* heap ,Node* P,int r,int c)		//根据父节点，处理周�
 
 void A_Star()
 {
+	clock_t begintime,endtime;
+	double sumtime;
 	//
 	int GC;
 	int HC;
 	int FC;
+	begin=clock();
 	Node* EndNode = new Node;
 	EndNode->row = 16;
 	EndNode->col = 24;
@@ -247,6 +252,8 @@ void A_Star()
 		Handle(ASheap, Current, Current->row, Current->col - 1);
 		Handle(ASheap, Current, Current->row, Current->col + 1);
 	}
+	endtime=clock();
+	sumtime= (double)(endtime-begintime)/(double)CLOCKS_PER_SEC;
 	string path;
 	int step = 0;
 	if (!find)
@@ -254,7 +261,7 @@ void A_Star()
 	else			//打印路径
 	{
 		ofstream fout("output_A.txt");
-		fout << "时间：" << endl;
+		fout << "时间：" <<sumtime<< endl;
 		fout << "操作序列:" << endl;
 		Node* p = EndNode;
 		Node* pre = p->Parent;
@@ -305,7 +312,7 @@ bool DFS(int maxf,INode* p)		//max最大深度，depth当前深度,p父节点
 {
 	if (p->F > maxf)
 		return false;
-	if (/*找到了*/)
+	if (p->row=endr&&p->col=endc)
 		return true;
 	INode* Next;
 	bool found = false;
@@ -329,28 +336,62 @@ bool DFS(int maxf,INode* p)		//max最大深度，depth当前深度,p父节点
 
 void IDA_Star()
 {
+	clock_t begintime,endtime;
+	double sumtime;
 	int GC;
 	int HC;
 	int FC;
-	INode* EndNode = new INode;
-	EndNode->row = 16;
-	EndNode->col = 24;
 	GC = 0;
 	HC = (16 - 1) + (24 - 0);
 	FC = GC + HC;
-
 	INode* StartNode = new INode;
 	StartNode->row = 1;
 	StartNode->col = 0;
 	StartNode->G = GC;
 	StartNode->H = HC;
 	StartNode->F = FC;
-	int maxf = FC;
-	INode* Current = StartNode;
-	while (Current != EndNode)		//
-	{
+	int maxf = FC-1;
+	bool found=false;
 
+	begintime=clock();
+	while (!found && mafx<limitF)		//
+	{
+		maxf++;
+		found = DFS(maxf,StartNode);
 	}
+	endtime=clock();
+	sumtime=(double)(endtime-begintime)/(double) CLOCKS_PER_SEC;
+	if(!found)
+	{
+		printf("can not find a path\n");
+		return;
+	}
+	INode* Current=StartNode;
+	INode* Next=StartNode->Child;
+	string path;
+	while(Next==NULL)
+	{
+		if(Current->row == Next->row)
+		{
+			if(Next->col>Current->col)
+				path.push_back("R");
+			else
+				path.push_back("L");
+		}
+		else
+		{
+			if(Next->col > Current->col)
+				path.push_back("D");
+			else
+				path.push_back("U");
+		}
+	}
+	ofstream fout("output_IDA.txt");
+	fout<<"总步数"<<path.size()<<endl<<"动作序列";
+	for(auto it:path)
+		fout<<it<<" ";
+	fout<<endl;
+	
 }
 
 int main()
@@ -377,4 +418,5 @@ int main()
 	}
 	A_Star();
 	IDA_Star();
+	return;
 }
