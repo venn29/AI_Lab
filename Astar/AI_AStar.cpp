@@ -2,7 +2,7 @@
 //
 
 
-//#include "pch.h" 
+#include "pch.h" 
 #include <iostream>
 #include<vector>
 #include<fstream>
@@ -20,8 +20,11 @@ int beginr, beginc;
 int rmax, cmax;
 int limitF;			//迭代深度的最大上限，如果超过了，就说明找不到了
 
+int newf;
+
 int **Map;
 int **Status;
+int **H;
 
 enum Flag
 {
@@ -123,7 +126,7 @@ public:
 		int target;
 		for (int i = 0; i < count; i++)
 		{
-			if (vec[i]->row == r&&vec[i]->col == c)
+			if (vec[i]->row == r && vec[i]->col == c)
 			{
 				target = i;
 				break;
@@ -267,7 +270,7 @@ void A_Star()
 	else			//打印路径
 	{
 		ofstream fout("output_A.txt");
-		fout << "时间：" << sumtime << endl;
+		fout << "时间：" << sumtime <<"s"<< endl;
 		fout << "操作序列:" << endl;
 		Node* p = EndNode;
 		Node* pre = p->Parent;
@@ -298,7 +301,7 @@ void A_Star()
 		fout << endl << "总步数：" << step << endl;
 	}
 }
-
+/*
 INode* NewNode(int r, int c, int G)	//为深度优先搜索创建一个新的节点		//想得到真实的消耗值，只需要在得到路径以后跑到底就可以了，反正要打印的
 {
 	int H = abs(endr - r) + abs(endc - c);
@@ -311,14 +314,13 @@ INode* NewNode(int r, int c, int G)	//为深度优先搜索创建一个新的节
 	NewNode->Child = NULL;
 	return NewNode;
 }
-
-int plusc[4] = { 1,0,-1,0 };
-int plusr[4] = { 0,1,0,-1 };
+*/
+/*
 bool DFS(int maxf, INode* p)		//max最大深度，depth当前深度,p父节点
 {
 	if (p->F > maxf)
 		return false;
-	if (p->row == endr&&p->col == endc)
+	if (p->row == endr && p->col == endc)
 		return true;
 	INode* Next;
 	bool found = false;
@@ -342,32 +344,77 @@ bool DFS(int maxf, INode* p)		//max最大深度，depth当前深度,p父节点
 		}
 	}
 	return found;
+}*/
+
+int plusr[4] = { 0,1,0,-1 };
+int plusc[4] = { 1,0,-1,0 };
+bool DFS(int maxf, int r, int c,int g)
+{
+	if (r == endr && c == endc)
+	{
+		Status[r][c] = 1;
+		return true;
+	}
+	int f = H[r][c] + g;
+	if (f > maxf)
+	{
+		if (f < newf)
+			newf = f;
+		return false;
+	}
+	Status[r][c] = 1;
+	bool found = false;
+	int newr;
+	int newc;
+	for (int i = 0; i < 4; i++)
+	{
+		newr = r + plusr[i];
+		newc = c + plusc[i];
+		if (Map[newr][newc] == 1 ||Status[newr][newc]==1|| c < 0||c>59)
+			continue;
+		found = DFS(maxf, newr, newc, g + 1);
+		if (found)
+			break;
+	}
+	if (!found)
+		Status[r][c] = 0;
+	return found;
+}
+
+int ToFindPath(int r, int c)
+{
+	int newr, newc;
+	int i;
+	for ( i = 0; i < 4; i++)
+	{
+		newr = r + plusr[i];
+		newc = c + plusc[i];
+		if (Status[newr][newc] == 1)
+			break;
+	}
+	return i;
 }
 
 void IDA_Star()
 {
+	for (int i = 0; i < rmax; i++)
+	{
+		memset(Status[i], 0, cmax * sizeof(int));
+	}
 	clock_t begintime, endtime;
 	double sumtime;
-	int GC;
-	int HC;
-	int FC;
-	GC = 0;
-	HC = abs((endr - beginr)) + abs((endc - beginc));
-	FC = GC + HC;
-	INode* StartNode = new INode;
-	StartNode->row = beginr;
-	StartNode->col = beginc;
-	StartNode->G = GC;
-	StartNode->H = HC;
-	StartNode->F = FC;
-	int maxf = FC - 1;
 	bool found = false;
-
 	begintime = clock();
-	while (!found && maxf<limitF)		//
+	int maxf = H[beginr][beginc];
+	newf = 65535;
+	while (!found && maxf < limitF)		//
 	{
-		maxf++;
-		found = DFS(maxf, StartNode);
+		found = DFS(maxf,beginr,beginc,0);
+		if (found)
+			break;
+		maxf = newf;
+		newf = 65535;
+
 	}
 	endtime = clock();
 	sumtime = (double)(endtime - begintime) / (double)CLOCKS_PER_SEC;
@@ -376,30 +423,31 @@ void IDA_Star()
 		printf("can not find a path\n");
 		return;
 	}
-	INode* Current = StartNode;
-	INode* Next = StartNode->Child;
+	int fr, fc;
+	fr = beginr;
+	fc = beginc;
 	string path;
-	while (Next != NULL)
+	int next;
+	for (int i = 0; i < maxf; i++)
 	{
-		if (Current->row == Next->row)
+		next = ToFindPath(fr, fc);
+		switch (next)
 		{
-			if (Next->col>Current->col)
-				path.push_back('R');
-			else
-				path.push_back('L');
+		case 0: {path.push_back('R'); break; }
+		case 1: {path.push_back('D'); break; }
+		case 2:{path.push_back('L'); break;}
+		case 3: {path.push_back('U'); break; }
+		default: 
+		{printf("error");
+			break;
 		}
-		else
-		{
-			if (Next->col > Current->col)
-				path.push_back('D');
-			else
-				path.push_back('U');
 		}
-		Current = Next;
-		Next = Next->Child;
+		Status[fr][fc] = 0;
+		fr = fr + plusr[next];
+		fc = fc + plusc[next];
 	}
 	ofstream fout("output_IDA.txt");
-	fout << "时间" << sumtime << endl;
+	fout << "时间" << sumtime <<"s"<< endl;
 	fout << "总步数" << path.size() << endl << "动作序列";
 	for (auto it : path)
 		fout << it << " ";
@@ -436,13 +484,15 @@ int main()
 	//初始化map和status：
 	Map = new int*[rmax];
 	Status = new int*[rmax];
-	for (int i = 0; i<rmax; i++)
+	H = new int*[rmax];
+	for (int i = 0; i < rmax; i++)
 	{
-		
+
 		Map[i] = new int[cmax];
 		Status[i] = new int[cmax];
-		memset(Map[i], 0, cmax*sizeof(int));
-		memset(Status[i], 0, cmax*sizeof(int));
+		H[i] = new int[cmax];
+		memset(Map[i], 0, cmax * sizeof(int));
+		memset(Status[i], 0, cmax * sizeof(int));
 	}
 	//
 	for (int i = 0; i < rmax; i++)
@@ -463,11 +513,11 @@ int main()
 	{
 		limitF = 900;
 		Buffer = "";
-		char c;		
-		bool pointbegin=false;//表示开始读取坐标了,以(为标志
+		char c;
+		bool pointbegin = false;//表示开始读取坐标了,以(为标志
 		while (fin >> c)
 		{
-			if(pointbegin)
+			if (pointbegin)
 				Buffer.push_back(c);
 			else
 			{
@@ -475,14 +525,14 @@ int main()
 					pointbegin = true;
 			}
 		}
-		
+
 		string NumBuffer;
 		bool b = false;
 		int i = 0;
 		int temp[4];
 		for (auto iter : Buffer)
 		{
-			if ('0' <= iter && iter<= '9')		
+			if ('0' <= iter && iter <= '9')
 			{
 				if (b == false)
 				{
@@ -507,7 +557,14 @@ int main()
 		beginc = temp[1];
 		endr = temp[2];
 		endc = temp[3];
-		
+
+	}
+	for (int i = 0; i < rmax; i++)
+	{
+		for (int j = 0; j < cmax; j++)
+		{
+			H[i][j] = abs(endr - i) + abs(endc - j);
+		}
 	}
 	//判断起点和终点是否可达
 	if (Map[endr][endc] == 1 || beginr < 0 || beginr>rmax - 1 || beginc < 0 || beginc>cmax - 1)
@@ -521,6 +578,6 @@ int main()
 		return 0;
 	}
 	A_Star();
-	//IDA_Star();
+	IDA_Star();
 	return 0;
 }
