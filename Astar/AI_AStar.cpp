@@ -352,7 +352,7 @@ bool DFS(int maxf, int r, int c,int g)
 {
 	if (r == endr && c == endc)
 	{
-		Status[r][c] = 1;
+		Map[r][c] = 2;
 		return true;
 	}
 	int f = H[r][c] + g;
@@ -362,7 +362,8 @@ bool DFS(int maxf, int r, int c,int g)
 			newf = f;
 		return false;
 	}
-	Status[r][c] = 1;
+	Map[r][c] = 2;
+	Status[r][c] = f;
 	bool found = false;
 	int newr;
 	int newc;
@@ -370,14 +371,14 @@ bool DFS(int maxf, int r, int c,int g)
 	{
 		newr = r + plusr[i];
 		newc = c + plusc[i];
-		if (Map[newr][newc] == 1 ||Status[newr][newc]==1|| c < 0||c>59)
+		if (  (g + 1 +H[r][c] ) > Status[newr][newc]||Map[newr][newc] != 0 || c < 0||c>59)
 			continue;
 		found = DFS(maxf, newr, newc, g + 1);
 		if (found)
 			break;
 	}
 	if (!found)
-		Status[r][c] = 0;
+		Map[r][c] = 0;
 	return found;
 }
 
@@ -389,7 +390,7 @@ int ToFindPath(int r, int c)
 	{
 		newr = r + plusr[i];
 		newc = c + plusc[i];
-		if (Status[newr][newc] == 1)
+		if (Map[newr][newc] == 2)
 			break;
 	}
 	return i;
@@ -397,10 +398,7 @@ int ToFindPath(int r, int c)
 
 void IDA_Star()
 {
-	for (int i = 0; i < rmax; i++)
-	{
-		memset(Status[i], 0, cmax * sizeof(int));
-	}
+	
 	clock_t begintime, endtime;
 	double sumtime;
 	bool found = false;
@@ -409,6 +407,11 @@ void IDA_Star()
 	newf = 65535;
 	while (!found && maxf < limitF)		//
 	{
+		for (int i = 0; i < rmax; i++)
+		{
+			for (int j = 0; j < cmax; j++)
+				Status[i][j] = 65535;
+		}
 		found = DFS(maxf,beginr,beginc,0);
 		if (found)
 			break;
@@ -442,7 +445,7 @@ void IDA_Star()
 			break;
 		}
 		}
-		Status[fr][fc] = 0;
+		Map[fr][fc] = 0;
 		fr = fr + plusr[next];
 		fc = fc + plusc[next];
 	}
@@ -577,6 +580,7 @@ int main()
 		printf("终点不合法");
 		return 0;
 	}
+	
 	A_Star();
 	IDA_Star();
 	return 0;
