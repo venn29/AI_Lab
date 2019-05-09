@@ -4,8 +4,11 @@
 #include<string>
 using namespace std;
 
-int Point[7] = { 100000, 10000, 5000, 1000,  200,  100,  10 };
+int Point[7] = { 1000000, 10000, 5000, 1000,  200,  100,  10 };
 //                长连，  活4， 冲4， 活三，  眠3   活2    眠2或者活1
+
+//长连7位，活4 5位
+//这是为了区分近层绝杀和真正的胜利，近层绝杀就设为100000，6位
 enum DirectionType { DNone,L1, D1, L2, D2, L3, D3, L4, D4 };		//单向类型,
 //活1，死1，活2，死2，活3，死3，活4，死4
 //数字表示个数，死活表示终结点的类型，活为空，死为对方点
@@ -140,7 +143,7 @@ private:
 public:
 	AI()
 	{
-		AIStatus = new StatusBoard;			//初始化，创建评估棋盘
+		AIStatus = new StatusBoard;			//初始化，创建启发值评估棋盘
 		memset(AIrow, 0, sizeof(int)*15);
 		memset(AIcol, 0, sizeof(int) * 15);
 		memset(AIpos, 0, sizeof(int) * 21);
@@ -189,8 +192,25 @@ public:
 		{
 			if (AIrow[r] >= 1000 && AIrold<1000)
 				AIcountTh++;
-			if (AIrow[r] > 1000)
+			if (AIcol[c] >= 1000 && AIcold < 1000)
 				AIcountTh++;
+			if (AIpos[newpos] >= 1000 && AIpold < 1000)
+				AIcountTh++;
+			if (AIneg[newneg] >= 1000 && AInold < 1000)
+				AIcountTh++;
+			AImaxrow = Max(AImaxrow, AIrow[r]);
+			AImaxcol = Max(AImaxcol, AIcol[c]);
+			AImaxpos = Max(AImaxpos, AIpos[newpos]);
+			AImaxneg = Max(AImaxneg, AIneg[newneg]);
+			int AImax = 0;
+			if (AImaxrow > AImax)
+				AImax = AImaxrow;
+			if (AImaxcol > AImax)
+				AImax = AImaxcol;
+			if (AImaxpos > AImax)
+				AImax = AImaxpos;
+			if (AImaxneg > AImax)
+				AImax = AImaxneg;
 		}
 
 	}
@@ -630,6 +650,10 @@ int Max(int i, int j)
 		return j;
 }
 
+void PrintBoard()		//打印棋盘
+{
+
+}
 
 int main()
 {
@@ -640,6 +664,29 @@ int main()
 		{
 			PositionMap[i][j] = 7 - Max(abs(7 - i), abs(7 - j));
 		}
+	}
+	int func;
+	printf("请输入谁先行:\n1、您\n2、AI\n");
+	scanf("%d", &func);
+	if (func == 2)
+	{
+				//直接下到中央
+	}
+	int win = 0;		//0为还没有出结果，1为玩家胜利，2为AI胜利
+	char row;
+	int col;
+	while (!win)
+	{
+		PrintBoard();
+		printf("\n请输入您要下的位置:字母 数字\n");
+		scanf("%c %d", &row, col);
+		//下子+更新状态+判断胜利条件
+
+		//搜索落子位置
+
+		//更新判断胜利条件
+
+		
 	}
 	return 0;
 }
