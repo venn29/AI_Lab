@@ -4,8 +4,10 @@
 #include<string>
 using namespace std;
 
-enum ChessNodeType{L1,C1,L2,C2,L3,C3,L4,C4}
+enum ChessNodeType { L1, C1, L2, C2, L3, C3, L4, C4 };		//单向类型
 //活1，冲1，活2，冲2，活3，冲3，活4，冲4
+enum MultiType{};		//包括组合棋型在内的单点棋型
+
 int PositionMap[15][15];		//每个位置的固定分，
 
 int Point[10]=
@@ -80,7 +82,8 @@ private:
 						//若flag为1，这个数值表示紧邻的地方或者我方评估棋形(只考虑个数是不够的，需要考虑类型，是死的还是活的，很不一样,可以考虑把flag扩大为int，方便表示死活)
 						//可以考虑用type表示空位，比如活四点：在这一点下了，就生成一个新活四,比较方便
 	//八个方向顺序是：左右下上，左上，右下，左下，右上
-	int type[8];			//八个方向上的棋型
+	MultiType Mtype[8];			//八个方向上的单向类型
+	ChessNodeType Ctype[8];			
 	int Target(int newr, int newc)		//方向判断
 	{
 		if (newr == r)		//同一行
