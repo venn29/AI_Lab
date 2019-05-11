@@ -1,10 +1,14 @@
+#include"pch.h"
 #include<iostream>
-#include<math.h>
+#include<cmath>
 #include<vector>
 #include<string>
+#include<algorithm>
 using namespace std;
 
-int Point[7] = { 1000000, 10000, 5000, 1000,  200,  100,  10 };
+int llimit, rlimit, ulimit, dlimit;		//四个方向的当前子的最边缘值
+
+int Point[7] = { 1000000, 20000, 2000, 1000,  200,  100,  10 };
 //                长连，  活4， 冲4， 活三，  眠3   活2    眠2或者活1
 
 //长连7位，活4 5位
@@ -49,7 +53,8 @@ string Playerpatter[7][10] = {
 };
 //模式串，也就是棋型,注意，AI的棋子都是1，玩家是2，同一种棋型，得分互为相反数，但是仍然应该写出
 
-
+//评估函数好像有点问题///没有问题，但是综合的时候要考虑了，同一类型的不同行之间应该加起来才对
+//同一行不叠加
 int evaluate(int type, int rank, int player)		//对棋盘上的一行(4种角度)作为string输入，判断得分，类型0123,对应横，纵，pos,neg,  th表示序号,要从string数组的第几个去取,player表示是哪位玩家
 {
 	string substring;		//子串
@@ -130,6 +135,8 @@ private:
 	int AImaxpos;
 	int AImaxneg;		//各行的最大值
 	int AIcountTh;		//1000以上的行/列/pos/neg的数量
+	int AIsum;			//总分，不同行之间应该相加
+	int AIscore;	
 
 	int Prow[15];
 	int Pcol[15];
@@ -140,6 +147,8 @@ private:
 	int Pmaxpos;
 	int Pmaxneg;		//各行的最大值
 	int PcountTh;
+	int Pscore;
+	int Psum;		//总分
 public:
 	AI()
 	{
@@ -154,12 +163,14 @@ public:
 		memset(Ppos, 0, sizeof(int) * 21);
 		memset(Pneg, 0, sizeof(int) * 21);
 		Pmaxrow = Pmaxcol = Pmaxpos = Pmaxneg = score = 0;
+		Pscore = AIscore = 0;
+		Psum = AIsum = 0;
 	}
 	StatusBoard* AIStatus;
-	StatusBoard* PlStatus;
 	int GetScore() { return score; }
-	int Update(int r, int c,int func)//原理同下，我只需要更新米字型上的4个方向,所以需要输入点对		前三个string数组都从0,0开始	正45度，rank=r+c ,负45度从左下角开始，func0表示落子，1表示取走
+	void Update(int r, int c)//原理同下，我只需要更新米字型上的4个方向,所以需要输入点对		前三个string数组都从0,0开始	正45度，rank=r+c ,负45度从左下角开始，func0表示落子，1表示取走
 	{
+		//单行信息更新
 		int newpos, newneg;
 		newpos = r + c;
 		newneg = 14 - r + c;
@@ -188,8 +199,11 @@ public:
 			AIpos[newneg] = evaluate(3, newneg, 1);
 			Ppos[newneg] = evaluate(3, newneg, 2);
 		}
-		if (func == 0)		//落子
-		{
+
+		////////分数信息有问题，没有判断落子类型，有可能落子减分
+
+		/////落子和取子好像没区别
+			//AI的分数信息更新
 			if (AIrow[r] >= 1000 && AIrold<1000)
 				AIcountTh++;
 			if (AIcol[c] >= 1000 && AIcold < 1000)
@@ -198,6 +212,16 @@ public:
 				AIcountTh++;
 			if (AIneg[newneg] >= 1000 && AInold < 1000)
 				AIcountTh++;
+			if (AIrow[r] < 1000 && AIrold >= 1000)
+				AIcountTh--;
+			if (AIcol[c] < 1000 && AIcold >= 1000)
+				AIcountTh--;
+			if (AIpos[newpos] < 1000 && AIpold >= 1000)
+				AIcountTh--;
+			if (AIneg[newneg] < 1000 && AInold >= 1000)
+				AIcountTh--;
+
+
 			AImaxrow = Max(AImaxrow, AIrow[r]);
 			AImaxcol = Max(AImaxcol, AIcol[c]);
 			AImaxpos = Max(AImaxpos, AIpos[newpos]);
@@ -211,8 +235,68 @@ public:
 				AImax = AImaxpos;
 			if (AImaxneg > AImax)
 				AImax = AImaxneg;
-		}
+			if (AImax >= 10000)
+				AIscore = AImax;
+			else if (AIcountTh >= 2)		//不存在单行活4以上的棋，但是有双活三以上，也就是1000以上的有两个以上，绝杀棋，下了就能赢，和活四同等力度
+				AIscore = 10000;
+			else							//普通情况，直接各行相加
+			{
+				AIsum += AIrow[r] - AIrold;
+				AIsum += AIcol[c] - AIcold;
+				AIsum += AIpos[newpos] - AIpold;
+				AIsum += AIneg[newneg] - AInold;
+			}
 
+			//玩家的分数信息更新
+			if (Prow[r] >= 1000 && Prold < 1000)
+				PcountTh++;
+			if (Pcol[c] >= 1000 && Pcold < 1000)
+				PcountTh++;
+			if (Ppos[newpos] >= 1000 && Ppold < 1000)
+				PcountTh++;
+			if (Pneg[newneg] >= 1000 && Pnold < 1000)
+				PcountTh++;
+			if (Prow[r] < 1000 && Prold >= 1000)
+				PcountTh--;
+			if (Pcol[c] < 1000 && Pcold >= 1000)
+				PcountTh--;
+			if (Ppos[newpos] < 1000 && Ppold >= 1000)
+				PcountTh--;
+			if (Pneg[newneg] < 1000 && Pnold >= 1000)
+				PcountTh--;
+			Pmaxrow = Max(Pmaxrow, Prow[r]);
+			Pmaxcol = Max(Pmaxcol, Pcol[c]);
+			Pmaxpos = Max(Pmaxpos, Ppos[newpos]);
+			Pmaxneg = Max(Pmaxneg, Pneg[newneg]);
+			int Pmax = 0;
+			if (Pmaxrow > Pmax)
+				Pmax = Pmaxrow;
+			if (Pmaxcol > Pmax)
+				Pmax = Pmaxcol;
+			if (Pmaxpos > Pmax)
+				Pmax = Pmaxpos;
+			if (Pmaxneg > Pmax)
+				Pmax = Pmaxneg;
+
+			Psum += Prow[r] - Prold;
+			Psum += Pcol[c] - Pcold;
+			Psum += Ppos[newpos] - Ppold;
+			Psum += Pneg[newneg] - Pnold;
+			if (Pmax >= 10000)
+				Pscore = Pmax;
+			else if (PcountTh >= 2)		//不存在单行活4以上的棋，但是有双活三以上，也就是1000以上的有两个以上，绝杀棋，下了就能赢，和活四同等力度(还是要差一点的)
+				Pscore = 10000;							
+			else		//普通情况，直接各行相加
+			{
+				Pscore = Psum;
+			}
+			//总分:	
+			if (AIscore == 1000000)
+				score = AIscore;
+			else if (Pscore == 1000000)
+				score = Pscore;
+			else
+				score = AIscore - Pscore;
 	}
 };
 
@@ -438,7 +522,7 @@ private:
 	}
 
 
-	//在以下评估中，涉及到两个点的都不判了
+	//在以下评估中，涉及到两个空点的都不判了
 	void lineEvalue(int i,int j,int k)	//更新一条直线上的棋型，输入数组索引
 	{	
 		//是活4或者冲4的连五点，下了就能赢
@@ -564,7 +648,10 @@ public:
 
 	//当新棋子落下时，调用本成员函数
 	void Update(int newr, int newc, int player)		//player为1，表示AI，为2表示玩家//更新以后，需要保留之前的这个节点的值，方便退出当前递归的时候的恢复，但是这个事情不应该由本类中的Update函数来做，需要外部调用自己控制
+													//	其实也不用保存，直接设置就可以了，不修改当前点的各种值，到时候直接拿掉然后更新
 	{
+		if (Map[newr][newc] != 0)			//此处有点，不再估值
+			return;
 		int Dis;
 		int target = Target(newr, newc);		//得到更新方向
 		Dis = Distance(target, newr, newc);
@@ -624,22 +711,136 @@ public:
 	}
 };
 
+class SimpleChessNode		//总分
+{
+public:
+	SimpleChessNode(int newr,int newc,int  newscore)
+	{
+		r = newr;
+		c = newc;
+		score = newscore;
+	}
+	void UpdateScore(int newscore)
+	{
+		score = newscore;
+	}
+	int r;
+	int c;
+	int score;
+};
+
 class StatusBoard		//评分表，对一方而言棋盘上空位点的评分，通过本类做启发式搜索
 {
-private:
-	int Map[15][15];			//防守分和进攻分的总和
-	
+
 public:
 	StatusBoard()		//初始化，估值由是否靠近中心确定
 	{
-		
+		for (int i = 0; i < 15; i++)
+		{
+			for (int j = 0; j < 15; j++)
+			{
+				ACMap[i][j] = new ChessNode(i, j, 1);
+				DCMap[i][j] = new ChessNode(i, j, 2);
+				ScoreMap[i][j] = new SimpleChessNode(i,j,PositionMap[i][j]);
+			}
+		}
 	}
-	void Update(int r, int c)		//为什么需要输入落下棋子来判定？因为我只需要更新米字上的值，其他值不会变
+	void Update(int r, int c,int player)		//为什么需要输入落下棋子来判定？因为我只需要更新米字上的值，其他值不会变
 	{
-
+		int i, j;
+		i = r;
+		int nAs;
+		int nDs;
+		for ( j = 0; j < 15; j++)		//横行更新
+		{
+			if (j == c)
+				continue;
+			ACMap[i][j]->Update(i, j, player);
+			DCMap[i][j]->Update(i, j, player);
+			nAs= ACMap[i][j]->GetScore();
+			nDs=DCMap[i][j]->GetScore();
+			ScoreMap[i][j]->UpdateScore(nAs + nDs);
+		}
+		j = c;
+		for (i = 0; i < 15; i++)		//纵列更新
+		{
+			if (i == r)
+				continue;
+			ACMap[i][j]->Update(i, j, player);
+			DCMap[i][j]->Update(i, j, player);
+			nAs = ACMap[i][j]->GetScore();
+			nDs = DCMap[i][j]->GetScore();
+			ScoreMap[i][j]->UpdateScore(nAs + nDs);
+		}
+		//正45度更新
+		if (r+c>14)		//下半区
+		{
+			int sumrc = r + c;
+			i = 14;
+			j = sumrc - i;
+			for (; j <= 14;)
+			{
+				ACMap[i][j]->Update(i, j, player);
+				DCMap[i][j]->Update(i, j, player);
+				nAs = ACMap[i][j]->GetScore();
+				nDs = DCMap[i][j]->GetScore();
+				ScoreMap[i][j]->UpdateScore(nAs + nDs);
+				i--;
+				j++;
+			}
+		}
+		else		//上半区
+		{
+			int sumrc = r + c;
+			j = 0;
+			i = sumrc - i;
+			for (; i >= 0;)
+			{
+				ACMap[i][j]->Update(i, j, player);
+				DCMap[i][j]->Update(i, j, player);
+				nAs = ACMap[i][j]->GetScore();
+				nDs = DCMap[i][j]->GetScore();
+				ScoreMap[i][j]->UpdateScore(nAs + nDs);
+				i--;
+				j++;
+			}
+		}
+		//负45度更新
+		if (r > c)		//下半区
+		{
+			j = 0;
+			i = r - c;
+			for (; i <= 14; )
+			{
+				ACMap[i][j]->Update(i, j, player);
+				DCMap[i][j]->Update(i, j, player);
+				nAs = ACMap[i][j]->GetScore();
+				nDs = DCMap[i][j]->GetScore();
+				ScoreMap[i][j]->UpdateScore(nAs + nDs);
+				i++;
+				j++;
+			}
+		}
+		else			//上半区
+		{
+			i = 0;
+			j = c - r;
+			for (; j <= 14;)
+			{
+				ACMap[i][j]->Update(i, j, player);
+				DCMap[i][j]->Update(i, j, player);
+				nAs = ACMap[i][j]->GetScore();
+				nDs = DCMap[i][j]->GetScore();
+				ScoreMap[i][j]->UpdateScore(nAs + nDs);
+				i++;
+				j++;
+			}
+		}
 	}
 	ChessNode* ACMap[15][15];	//进攻分估值，统计自己方棋子的空位分数
 	ChessNode* DCMap[15][15];	//防守分估值，统计对方棋子的空位分数
+	SimpleChessNode* ScoreMap[15][15];			//进攻分和防守分的和，对双方来说，这个总和都是一样的，你的进攻分就是我的防守分
+	
 };
 
 int Max(int i, int j)
@@ -650,13 +851,193 @@ int Max(int i, int j)
 		return j;
 }
 
+void LimitUpdate(int r, int c)
+{
+	if (llimit == -1)
+	{
+		llimit = rlimit = c;
+		ulimit = dlimit = r;
+	}
+	if (c < llimit)
+		llimit = c;
+	if (c > rlimit)
+		rlimit = r;
+	if (r < ulimit)
+		ulimit = r;
+	if (r > dlimit)
+		dlimit = r;
+
+}
+
 void PrintBoard()		//打印棋盘
 {
+	printf(" ");
+	for (int i = 0; i < 14; i++)
+		cout << i;
+	for (int i = 0; i < 14; i++)
+	{
+		printf("%c", 'A' + i);
+		for (int j = 0; j < 14; j++)
+		{
+			if (Map[i][j] == 0)
+				printf("0");
+			else if (Map[i][j] == 1)		//AI的棋子
+				cout << "+";
+			else
+				cout << "*";
+		}
+	}
+}
 
+bool compare(SimpleChessNode* a, SimpleChessNode *b)
+{
+	return a->score > b->score;
+}
+
+int BetaTree(int maxlength, int depth, int MaxBefore)
+{
+	int NodeCount;		//我这次需要估计的棋子的数量
+	SimpleChessNode* Chess[225] = { NULL };	//最多225个指针，也不多		//简化的指针，只有分数和坐标值
+	int LBoard, RBoard, UBoard, DBoard;
+	if (llimit == 0)
+		LBoard = 0;
+	else
+		LBoard = llimit - 1;
+	if (rlimit == 0)
+		RBoard = 0;
+	else
+		RBoard = rlimit - 1;
+	if (ulimit == 0)
+		UBoard = 0;
+	else
+		UBoard = ulimit - 1;
+	if (dlimit == 0)
+		DBoard = 0;
+	else
+		DBoard = dlimit - 1;
+	NodeCount = (RBoard - LBoard)*(DBoard - UBoard);
+	int i, j, k;
+	i = UBoard;
+	k = 0;
+	for (; i <= DBoard; i++)
+	{
+		for (j = LBoard; j <= RBoard; j++)
+		{
+			Chess[k] = myAI->AIStatus->ScoreMap[i][j];
+			k++;
+			NodeCount++;
+		}
+	}
+	sort(Chess, Chess + NodeCount, compare);		//对待搜索的点，排序
+	int newr, newc;
+	int MinScore = 999999;
+	int Pickr, Pickc;		//在0层起作用，决定确实下哪一个子
+	int tempscore;			//每一个循环的子的分数
+	for (int i = 0; i < NodeCount; i++)
+	{
+		//下子
+		newr = Chess[i]->r;
+		newc = Chess[i]->c;
+		Map[newr][newc] = 1;
+		myAI->Update(newr, newc);		//更新分数
+		myAI->AIStatus->Update(newr, newc, 1);		//更新启发函数的值
+		tempscore = BetaTree(maxlength, depth, MinScore);
+		if (tempscore < MinScore)
+		{
+			Pickr = newr;
+			Pickc = newc;
+			MinScore = tempscore;
+		}
+		//取回棋子
+		Map[newr][newc] = 0;
+		myAI->Update(newr, newc);		//更新分数
+		myAI->AIStatus->Update(newr, newc, 1);		//更新启发函数的值
+		if (MinScore < MaxBefore)		//剪枝
+			break;
+	}
+	return MinScore;
+}
+
+int AlphaTree(int maxlength,int depth,int MinBefore)		//最大点，有深度限制，当前深度		
+{
+	if (depth > maxlength)
+		return  myAI->GetScore();
+	int NodeCount;		//我这次需要估计的棋子的数量
+	SimpleChessNode* Chess[225] = { NULL };	//最多225个指针，也不多		//简化的指针，只有分数和坐标值
+	int LBoard, RBoard, UBoard, DBoard;
+	if (llimit == 0)
+		LBoard = 0;
+	else
+		LBoard = llimit - 1;
+	if (rlimit == 0)
+		RBoard = 0;
+	else
+		RBoard = rlimit - 1;
+	if (ulimit == 0)
+		UBoard = 0;
+	else
+		UBoard = ulimit - 1;
+	if (dlimit == 0)
+		DBoard = 0;
+	else
+		DBoard = dlimit - 1;
+	NodeCount = (RBoard - LBoard)*(DBoard - UBoard);
+	int i, j, k;
+	i = UBoard;
+	k = 0;
+	for (; i <= DBoard; i++)
+	{
+		for (j = LBoard; j <= RBoard; j++)
+		{
+			Chess[k] = myAI->AIStatus->ScoreMap[i][j];
+			k++;
+			NodeCount++;
+		}
+	}
+	sort(Chess, Chess + NodeCount, compare);		//对待搜索的点，排序
+	int newr, newc;
+	int MaxScore = -999999;
+	int Pickr, Pickc;		//在0层起作用，决定确实下哪一个子
+	int tempscore;			//每一个循环的子的分数
+	for (int i = 0; i < NodeCount; i++)
+	{
+		//下子
+		newr = Chess[i]->r;
+		newc = Chess[i]->c;
+		Map[newr][newc] = 1;
+		myAI->Update(newr, newc);		//更新分数
+		myAI->AIStatus->Update(newr, newc, 1);		//更新启发函数的值
+		tempscore = BetaTree(maxlength, depth, MaxScore);
+		if (tempscore > MaxScore)
+		{
+			Pickr = newr;
+			Pickc = newc;
+			MaxScore = tempscore;
+		}
+		//取回棋子
+		Map[newr][newc] = 0;
+		myAI->Update(newr, newc);		//更新分数
+		myAI->AIStatus->Update(newr, newc, 1);		//更新启发函数的值
+		if (MaxScore > MinBefore)
+			break;
+	}
+	if (depth == 0)		//下子
+	{
+		Map[newr][newc] = 1;
+		myAI->Update(newr, newc);		//更新分数
+		myAI->AIStatus->Update(newr, newc, 1);		//更新启发函数的值
+		myAI->GetScore();			//返回真实的评估值
+	}
+	return MaxScore;
 }
 
 int main()
 {
+	//初始化外围:
+	llimit = -1;
+	rlimit = -1;
+	ulimit = -1;
+	dlimit = -1;
 	//初始化位置得分表
 	for (int i = 0; i < 15; i++)
 	{
@@ -670,23 +1051,46 @@ int main()
 	scanf("%d", &func);
 	if (func == 2)
 	{
+		Map[7][7] = 1;
+		myAI->Update(7, 7);
+		myAI->AIStatus->Update(7, 7, 1);
+		LimitUpdate(7, 7);
 				//直接下到中央
 	}
-	int win = 0;		//0为还没有出结果，1为玩家胜利，2为AI胜利
+	int win = 0;		//0为还没有出结果，2为玩家胜利，1为AI胜利
 	char row;
 	int col;
-	while (!win)
+	int score;
+	while (1)
 	{
 		PrintBoard();
 		printf("\n请输入您要下的位置:字母 数字\n");
 		scanf("%c %d", &row, col);
 		//下子+更新状态+判断胜利条件
-
-		//搜索落子位置
-
+		Map[row][col] = 2;
+		myAI->Update(row, col);
+		myAI->AIStatus->Update(row, col, 2);
+		score = myAI->GetScore();
+		if (score == -1000000)
+		{
+			win = 2;
+			break;
+		}
+		//搜索落子位置，因为返回两个坐标比较麻烦，所以直接在0层Max树下子
+		score=AlphaTree(1, 0, -999999);
 		//更新判断胜利条件
-
+		if (score == 1000000)
+		{
+			win = 1;
+			break;
+		}
 		
 	}
+	if (win == 0)
+		printf("\n平局\n");
+	else if (win == 1)
+		printf("\n您获胜了\n");
+	else
+		printf("\nAI胜利\n");
 	return 0;
 }
