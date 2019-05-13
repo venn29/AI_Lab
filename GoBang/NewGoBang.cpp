@@ -4,6 +4,7 @@
 #include<vector>
 #include<string>
 #include<algorithm>
+#include<fstream>
 using namespace std;
 //limit只扩张，不减小
 int llimit, rlimit, ulimit, dlimit;		//四个方向的当前子的最边缘值
@@ -1031,6 +1032,28 @@ int AlphaTree(int maxlength, int depth, int MinBefore)		//最大点，有深度�
 
 */
 
+class StepOutPut
+{
+private:
+	bool changeline;
+public:
+	StepOutPut()
+	{
+		changeline = false;
+	}
+	void Output(int r, int c)
+	{
+		ofstream fout("output.txt", ios::app);
+		if (changeline)
+			fout << "[" << r << "," << c << "]\n";
+		else
+			fout << "[" << r << "," << c << "]\t";
+		fout.close();
+		changeline = !changeline;
+	}
+};
+
+StepOutPut* Myoutput;
 int EachScore(bool h, int *a, int line, bool conti, int pos,int player)//标记头尾有没有被堵上 
 {
 	if (h)		//被堵上
@@ -1124,7 +1147,7 @@ int EachScore(bool h, int *a, int line, bool conti, int pos,int player)//标记�
 			if (a[4] == player)
 				return 2000;
 			else
-				return 10000;
+				return 100000;
 		}
 	}
 }
@@ -1141,128 +1164,144 @@ int Evaluate()
 	bool conti;		//没有被敌方打断
 	bool Awin=false;
 	bool Pwin = false;
+	int AHcount = 0;
+	int PHcount = 0;		//统计活3以上的数量
 	int pos;		//5元组中对面的棋子的位置(如果有的话)
+	int temp;
 	for (int i = 0; i < 15; i++)		
 	{
 		for (int j = 0; j < 15; j++)
 		{	
 			if (Map[i][j] == 0)		//遇到棋子才开始判断
 				continue;
-			else if (Map[i][j] == 1)			//AI棋子的评分
-			{
-				//横向
-				if (j + 4 < 15)
-				{
-					h = false;
-					pos = 0;
-					conti = true;
-					linecount = 0;
-					if (j - 1 < 0 || Map[i][j - 1] != 0)		//左边被堵上了
-						h = true;
-					for (int k = 0; k < 5; k++)
-					{
-						a[k] = Map[i][j + k];
-						if (a[k] == 1 && conti)
-							linecount++;
-						if (a[k] == 2)
-						{
-							conti = false;
-							pos = k;
-						}
-						
-					}
-					if (linecount == 5)
-					{
-						Awin = true;
-						break;
-					}
-					As += EachScore(h, a, linecount,conti,pos,1);
-				}	
-				//纵向
-				if (i + 4 < 15)
-				{
-					pos = 0;
-					conti = true;
-					linecount = 0;
-					if (i - 1 < 0 || Map[i-1][j] != 0)		//上边被堵上了
-						h = true;
-					for (int k = 0; k < 5; k++)
-					{
-						a[k] = Map[i+k][j];
-						if (a[k] == 1 && conti)
-							linecount++;
-						if (a[k] == 2)
-						{
-							conti = false;
-							pos = k;
-						}
-					}
-					if (linecount == 5)
-					{
-						Awin = true;
-						break;
-					}
-					As += EachScore(h, a, linecount, conti, pos, 1);
-				}
-				//正45度
-				if (i - 4 > 0 && j + 4 < 15)
-				{
-					h = false;
-					pos = 0;
-					conti = true;
-					linecount = 0;
-					if ( j - 1 < 0|| i+1<0 || Map[i + 1][j-1] != 0)		//左下被堵上了
-						h = true;
-					for (int k = 0; k < 5; k++)
-					{
-						a[k] = Map[i - k][j+k];
-						if (a[k] == 1 && conti)
-							linecount++;
-						if (a[k] == 2)
-						{
-							conti = false;
-							pos = k;
-						}
-					}
-					if (linecount == 5)
-					{
-						Awin = true;
-						break;
-					}
-					As += EachScore(h, a, linecount, conti, pos, 1);
-				}
-				//负45度
-				if (i + 4 < 15 && j + 4 < 15)
-				{
-					h = false;
-					pos = 0;
-					conti = true;
-					linecount = 0;
-					if (j - 1 < 0 || i - 1 < 0 || Map[i - 1][j - 1] != 0)		//左上被堵上了
-						h = true;
-					for (int k = 0; k < 5; k++)
-					{
-						a[k] = Map[i + k][j + k];
-						if (a[k] == 1 && conti)
-							linecount++;
-						if (a[k] == 2)
-						{
-							conti = false;
-							pos = k;
-						}
-					}
-					if (linecount == 5)
-					{
-						Awin = true;
-						break;
-					}
-					As += EachScore(h, a, linecount, conti, pos, 1);
-				}
-			}
-			else						//(Map[i][j] == 2)				//玩家棋子的评分
+			
+			else 	if(Map[i][j]==1)		//AI棋子的评分
 			{
 			//横向
 			if (j + 4 < 15)
+			{
+				h = false;
+				pos = 0;
+				conti = true;
+				linecount = 0;
+				if (j - 1 < 0 || Map[i][j - 1] != 0)		//左边被堵上了
+					h = true;
+				for (int k = 0; k < 5; k++)
+				{
+					a[k] = Map[i][j + k];
+					if (a[k] == 1 && conti)
+						linecount++;
+					if (a[k] == 2)
+					{
+						conti = false;
+						pos = k;
+					}
+
+				}
+				if (linecount == 5)
+				{
+					Awin = true;
+					break;
+				}
+				temp= EachScore(h, a, linecount, conti, pos, 1);
+				if (temp >= 1000)
+					AHcount ++ ;
+				As += temp;
+			}
+			//纵向
+			if (i + 4 < 15)
+			{
+				pos = 0;
+				conti = true;
+				linecount = 0;
+				if (i - 1 < 0 || Map[i - 1][j] != 0)		//上边被堵上了
+					h = true;
+				for (int k = 0; k < 5; k++)
+				{
+					a[k] = Map[i + k][j];
+					if (a[k] == 1 && conti)
+						linecount++;
+					if (a[k] == 2)
+					{
+						conti = false;
+						pos = k;
+					}
+				}
+				if (linecount == 5)
+				{
+					Awin = true;
+					break;
+				}
+				temp = EachScore(h, a, linecount, conti, pos, 1);
+				if (temp >= 1000)
+					AHcount++;
+				As += temp;
+			}
+			//正45度
+			if (i - 4 >= 0 && j + 4 < 15)
+			{
+				h = false;
+				pos = 0;
+				conti = true;
+				linecount = 0;
+				if (j - 1 < 0 || i + 1 < 0 || Map[i + 1][j - 1] != 0)		//左下被堵上了
+					h = true;
+				for (int k = 0; k < 5; k++)
+				{
+					a[k] = Map[i - k][j + k];
+					if (a[k] == 1 && conti)
+						linecount++;
+					if (a[k] == 2)
+					{
+						conti = false;
+						pos = k;
+					}
+				}
+				if (linecount == 5)
+				{
+					Awin = true;
+					break;
+				}
+				temp = EachScore(h, a, linecount, conti, pos, 1);
+				if (temp >= 1000)
+					AHcount++;
+				As += temp;
+			}
+			//负45度
+			if (i + 4 < 15 && j + 4 < 15)
+			{
+				h = false;
+				pos = 0;
+				conti = true;
+				linecount = 0;
+				if (j - 1 < 0 || i - 1 < 0 || Map[i - 1][j - 1] != 0)		//左上被堵上了
+					h = true;
+				for (int k = 0; k < 5; k++)
+				{
+					a[k] = Map[i + k][j + k];
+					if (a[k] == 1 && conti)
+						linecount++;
+					if (a[k] == 2)
+					{
+						conti = false;
+						pos = k;
+					}
+				}
+				if (linecount == 5)
+				{
+					Awin = true;
+					break;
+				}
+				temp = EachScore(h, a, linecount, conti, pos, 1);
+				if (temp >= 1000)
+					AHcount++;
+				As += temp;
+			}
+			}
+			else 				//(Map[i][j] == 2)				//玩家棋子的评分
+			{
+			//横向
+			if (j + 4 <= 14)
 			{
 				h = false;
 				pos = 0;
@@ -1286,10 +1325,13 @@ int Evaluate()
 					Pwin = true;
 					break;
 				}
-				Ps += EachScore(h, a, linecount, conti, pos, 2);
+				temp= EachScore(h, a, linecount, conti, pos, 2);
+				if (temp >= 1000)
+					PHcount++;
+				Ps += temp;
 			}
 			//纵向
-			if (i + 4 < 15)
+			if (i + 4 <= 14)
 			{
 				h = false;
 				pos = 0;
@@ -1313,10 +1355,13 @@ int Evaluate()
 					Pwin = true;
 					break;
 				}
-				Ps += EachScore(h, a, linecount, conti, pos, 2);
+				temp = EachScore(h, a, linecount, conti, pos, 2);
+				if (temp >= 1000)
+					PHcount++;
+				Ps += temp;
 			}
 			//正45度
-			if (i - 4 > 0 && j + 4 < 15)
+			if (i - 4 >= 0 && j + 4 <= 14)
 			{
 				h = false;
 				pos = 0;
@@ -1340,7 +1385,10 @@ int Evaluate()
 					Pwin = true;
 					break;
 				}
-				Ps += EachScore(h, a, linecount, conti, pos, 2);
+				temp = EachScore(h, a, linecount, conti, pos, 2);
+				if (temp >= 1000)
+					PHcount++;
+				Ps += temp;
 			}
 			//负45度
 			if (i + 4 < 15 && j + 4 < 15)
@@ -1367,50 +1415,53 @@ int Evaluate()
 					Pwin = true;
 					break;
 				}
-				Ps += EachScore(h, a, linecount, conti, pos, 2);
+				temp = EachScore(h, a, linecount, conti, pos, 2);
+				if (temp >= 1000)
+					PHcount++;
+				Ps += temp;
 			}
 			}
-		}
-		if (Awin)
-		{
-			return 1000000;		//6个0
 		}
 		if (Pwin)
 		{
 			return -1000000;		//6个0
 		}
+		if (Awin)
+		{
+			return 1000000;		//6个0
+		}
 	}
-	if (As > 2000 && As < 10000)		//有两个活3及其以上的点
-		As = 10000;
-	if (Ps > 2000 && Ps < 10000)		//有两个活3及其以上的点
-		Ps = 10000;
+	if (AHcount >= 2 && As < 10000)		//有两个活3及其以上的点
+		As += 10000;
+	if (PHcount >= 2 && Ps < 10000)		//有两个活3及其以上的点
+		Ps += 10000;
 	return As - Ps;
 }
 
 int AlphaTree(int maxlength, int depth, int MinBefore,int *a);
 int BetaTree(int maxlength, int depth, int MaxBefore)		//最大点，有深度限制，当前深度		
 {
-	if (depth > maxlength)
+	if (depth >= maxlength)
 	{
 		return  Evaluate();
 	}
 	int LBoard, RBoard, UBoard, DBoard;
-	if (llimit <= 1)
+	if (llimit <= 0)
 		LBoard = 0;
 	else
-		LBoard = llimit - 2;
-	if (rlimit >= 13)
+		LBoard = llimit - 1;
+	if (rlimit >= 14)
 		RBoard = 14;
 	else
-		RBoard = rlimit + 2;
-	if (ulimit <= 1)
+		RBoard = rlimit + 1;
+	if (ulimit <= 0)
 		UBoard = 0;
 	else
-		UBoard = ulimit - 2;
-	if (dlimit >= 13)
+		UBoard = ulimit - 1;
+	if (dlimit >= 14)
 		DBoard = 14;
 	else
-		DBoard = dlimit + 2;
+		DBoard = dlimit + 1;
 	int i, j, k;
 	i = UBoard;
 	int tempscore;			//每一个循环的子的分数
@@ -1422,7 +1473,7 @@ int BetaTree(int maxlength, int depth, int MaxBefore)		//最大点，有深度�
 	dold = dlimit;
 	int Pickr, Pickc;		//在0层起作用，决定确实下哪一个子
 	bool cut = false;
-	for (; i <= DBoard; i++)
+	for (i=UBoard; i <= DBoard; i++)
 	{
 		for (j = LBoard; j <= RBoard; j++)
 		{
@@ -1435,9 +1486,12 @@ int BetaTree(int maxlength, int depth, int MaxBefore)		//最大点，有深度�
 				Pickr = i;
 				Pickc = j;
 				cut =true;
+				Map[i][j] = 0;
+				MinScore = -1000000;
+				break;
 			}
 			LimitUpdate(i, j);
-			tempscore = AlphaTree(maxlength, depth + 1, MinScore,NULL);
+			tempscore = AlphaTree(maxlength, depth+1, MinScore,NULL);
 			if (tempscore < MinScore)
 			{
 				MinScore = tempscore;
@@ -1456,32 +1510,32 @@ int BetaTree(int maxlength, int depth, int MaxBefore)		//最大点，有深度�
 			break;
 	}
 
-	return MinScore;
+	return MinScore*(1-0.05*depth);
 }
 
 int AlphaTree(int maxlength, int depth, int MinBefore,int *a)		//最大点，有深度限制，当前深度		
 {
-	if (depth > maxlength)
+	if (depth >= maxlength)
 	{
 		return  Evaluate();
 	}
 	int LBoard, RBoard, UBoard, DBoard;
-	if (llimit <=1)
+	if (llimit <= 0)
 		LBoard = 0;
 	else
-		LBoard = llimit - 2;
-	if (rlimit >=13)
+		LBoard = llimit - 1;
+	if (rlimit >= 14)
 		RBoard = 14;
 	else
-		RBoard = rlimit + 2;
-	if (ulimit <=1)
+		RBoard = rlimit + 1;
+	if (ulimit <= 0)
 		UBoard = 0;
 	else
-		UBoard = ulimit - 2;
-	if (dlimit >=13)
+		UBoard = ulimit - 1;
+	if (dlimit >= 14)
 		DBoard = 14;
 	else
-		DBoard = dlimit + 2;
+		DBoard = dlimit + 1;
 	int i, j, k;
 	i = UBoard;
 	int tempscore;			//每一个循环的子的分数
@@ -1493,9 +1547,9 @@ int AlphaTree(int maxlength, int depth, int MinBefore,int *a)		//最大点，有
 	dold = dlimit;
 	int Pickr, Pickc;		//在0层起作用，决定确实下哪一个子
 	bool cut = false;
-	/*if (depth == 0)
+	if (depth == 0)
 	{
-		for (; i <= DBoard; i++)
+		for (i=UBoard; i <= DBoard; i++)
 		{
 			for (j = LBoard; j <= RBoard; j++)
 			{
@@ -1506,15 +1560,16 @@ int AlphaTree(int maxlength, int depth, int MinBefore,int *a)		//最大点，有
 				{
 					a[0] = i;
 					a[1] = j;
+					return 1000000;
 				}
 				Map[i][j] = 0;
 				
 			}
 			
 		}
-	}*/
+	}
 	
-	for (i=LBoard; i <= DBoard; i++)
+	for (i=UBoard; i <= DBoard; i++)
 	{
 		for (j = LBoard; j <= RBoard; j++)
 		{
@@ -1526,10 +1581,13 @@ int AlphaTree(int maxlength, int depth, int MinBefore,int *a)		//最大点，有
 				Pickr = i;
 				Pickc = j;
 				cut = true;
+				Map[i][j] = 0;
+				MaxScore = 1000000;
+				break;
 			}
 			LimitUpdate(i, j);
 
-			tempscore = BetaTree(maxlength, depth + 1, MaxScore);
+			tempscore = BetaTree(maxlength, depth , MaxScore);
 			if (tempscore > MaxScore)
 			{
 				MaxScore = tempscore;
@@ -1556,7 +1614,7 @@ int AlphaTree(int maxlength, int depth, int MinBefore,int *a)		//最大点，有
 		a[1] = Pickc;
 		return Evaluate();			//返回真实的评估值
 	}
-	return MaxScore;
+	return MaxScore*(1-depth*0.05);
 }
 
 
@@ -1608,6 +1666,13 @@ int main()
 	int func;
 	printf("请输入谁先行:\n1、您\n2、AI\n");
 	cin >> func;
+	ofstream fout("output.txt");
+	if (func == 1)
+		fout << "ME" << "\t" << "AI" << endl;
+	else
+		fout << "AI" << "\t" << "ME" << endl;
+	fout.close();
+	Myoutput = new StepOutPut;
 	if (func == 2)
 	{
 		Map[7][7] = 1;
@@ -1615,21 +1680,36 @@ int main()
 		a[0] = 7;
 		a[1] = 7;
 		//直接下到中央
+		Myoutput->Output(7, 7);
 	}
+	
 	int win = 0;		//0为还没有出结果，2为玩家胜利，1为AI胜利
 	char Crow;
 	int row;
 	int col;
 	int score;
+	PrintBoard(a);
 	while (1)
 	{
-		PrintBoard(a);
 		printf("\n请输入您要下的位置:字母(大写) 数字\n");
 		cin >> Crow;
 		cin >> col;
 		row = Crow - 'A';
+		if (row < 0 || row >= 15)
+		{
+			continue;
+		}
+		if (col < 0 || col >= 15)
+		{
+			continue;
+		}
+		if (Map[row][col] != 0)
+		{
+			continue;
+		}
 		//下子+更新状态+判断胜利条件
 		Map[row][col] = 2;
+		Myoutput->Output(row, col);
 		LimitUpdate(row, col);
 		//myAI->AIStatus->Update(row, col, 2);
 		score = Evaluate();
@@ -1643,19 +1723,28 @@ int main()
 		score = AlphaTree(2, 0, 999999,a);
 		//更新判断胜利条件
 		score = Evaluate();
+		Myoutput->Output(a[0], a[1]);
 		if (score == 1000000)
 		{
 			win = 1;
 			break;
 		}
 
+		PrintBoard(a);
 	}
 	PrintBoard(a);
-	if (win == 0)
-		printf("\n平局\n");
-	else if (win == 2)
-		printf("\n您获胜了\n");
+	ofstream fend("output.txt", ios::app);
+	if (win == 2)
+	{
+		printf("您获胜了\n");
+		fend << endl << "您获胜了" << endl;
+		fend.close();
+	}
 	else
-		printf("\nAI胜利\n");
+	{
+		printf("AI胜利\n");
+		fend << endl << "AI胜利" << endl;
+		fend.close();
+	}
 	return 0;
 }

@@ -29,7 +29,7 @@ int **H;
 enum Flag
 {
 	Untouched,		//从来没有遇到过的节点
-	OPEN,			//Open表中
+	OPEN,			//队列中
 	Closed			//已经close掉的
 };
 
@@ -43,14 +43,6 @@ struct Node			//A*中的节点定义
 	Node* Parent = NULL;	//Parent用于A*
 };
 
-struct INode	//IDA*中节点的定义
-{
-	int row, col;
-	int G;
-	int H;
-	int F = MAXF;
-	INode* Child;
-};
 
 class MinHeap
 {
@@ -201,7 +193,7 @@ void Handle(MinHeap* heap, Node* P, int r, int c)		//根据父节点，处理周
 			NewNode->Parent = P;
 			heap->Insert(NewNode);
 		}
-		else if (Status[r][c] == OPEN)				//已经在Open表中的节点,看是否需要更新
+		else if (Status[r][c] == OPEN)				//已经在队列中的节点,看是否需要更新
 		{
 			int i;
 			i = heap->Serch(r, c);
@@ -296,167 +288,14 @@ void A_Star()
 		}
 		for (int i = step - 1; i >= 0; i--)
 		{
-			fout << path[i] << " ";
+			fout << path[i];
 		}
 		fout << endl << "总步数：" << step << endl;
+		fout.close();
 	}
-}
-/*
-INode* NewNode(int r, int c, int G)	//为深度优先搜索创建一个新的节点		//想得到真实的消耗值，只需要在得到路径以后跑到底就可以了，反正要打印的
-{
-	int H = abs(endr - r) + abs(endc - c);
-	INode* NewNode = new INode;
-	NewNode->row = r;
-	NewNode->col = c;
-	NewNode->G = G;
-	NewNode->H = H;
-	NewNode->F = G + H;
-	NewNode->Child = NULL;
-	return NewNode;
-}
-*/
-/*
-bool DFS(int maxf, INode* p)		//max最大深度，depth当前深度,p父节点
-{
-	if (p->F > maxf)
-		return false;
-	if (p->row == endr && p->col == endc)
-		return true;
-	INode* Next;
-	bool found = false;
-	for (int i = 0; i < 4; i++)
-	{
-		int r = p->row + plusr[i];
-		int c = p->col + plusc[i];
-		if (Pass(r, c))
-			Next = NewNode(r, c, p->G + 1);
-		else
-			continue;
-		found = DFS(maxf, Next);
-		if (found)
-		{
-			p->Child = Next;
-			break;
-		}
-		else
-		{
-			delete Next;
-		}
-	}
-	return found;
-}*/
-
-int plusr[4] = { 0,1,0,-1 };
-int plusc[4] = { 1,0,-1,0 };
-bool DFS(int maxf, int r, int c,int g)
-{
-	if (r == endr && c == endc)
-	{
-		Map[r][c] = 2;
-		return true;
-	}
-	int f = H[r][c] + g;
-	if (f > maxf)
-	{
-		if (f < newf)
-			newf = f;
-		return false;
-	}
-	Map[r][c] = 2;
-	Status[r][c] = f;
-	bool found = false;
-	int newr;
-	int newc;
-	for (int i = 0; i < 4; i++)
-	{
-		newr = r + plusr[i];
-		newc = c + plusc[i];
-		if (  (g + 1 +H[r][c] ) > Status[newr][newc]||Map[newr][newc] != 0 || c < 0||c>59)
-			continue;
-		found = DFS(maxf, newr, newc, g + 1);
-		if (found)
-			break;
-	}
-	if (!found)
-		Map[r][c] = 0;
-	return found;
+	return;
 }
 
-int ToFindPath(int r, int c)
-{
-	int newr, newc;
-	int i;
-	for ( i = 0; i < 4; i++)
-	{
-		newr = r + plusr[i];
-		newc = c + plusc[i];
-		if (Map[newr][newc] == 2)
-			break;
-	}
-	return i;
-}
-
-void IDA_Star()
-{
-	
-	clock_t begintime, endtime;
-	double sumtime;
-	bool found = false;
-	begintime = clock();
-	int maxf = H[beginr][beginc];
-	newf = 65535;
-	while (!found && maxf < limitF)		//
-	{
-		for (int i = 0; i < rmax; i++)
-		{
-			for (int j = 0; j < cmax; j++)
-				Status[i][j] = 65535;
-		}
-		found = DFS(maxf,beginr,beginc,0);
-		if (found)
-			break;
-		maxf = newf;
-		newf = 65535;
-
-	}
-	endtime = clock();
-	sumtime = (double)(endtime - begintime) / (double)CLOCKS_PER_SEC;
-	if (!found)
-	{
-		printf("can not find a path\n");
-		return;
-	}
-	int fr, fc;
-	fr = beginr;
-	fc = beginc;
-	string path;
-	int next;
-	for (int i = 0; i < maxf; i++)
-	{
-		next = ToFindPath(fr, fc);
-		switch (next)
-		{
-		case 0: {path.push_back('R'); break; }
-		case 1: {path.push_back('D'); break; }
-		case 2:{path.push_back('L'); break;}
-		case 3: {path.push_back('U'); break; }
-		default: 
-		{printf("error");
-			break;
-		}
-		}
-		Map[fr][fc] = 0;
-		fr = fr + plusr[next];
-		fc = fc + plusc[next];
-	}
-	ofstream fout("output_IDA.txt");
-	fout << "时间" << sumtime <<"s"<< endl;
-	fout << "总步数" << path.size() << endl << "动作序列";
-	for (auto it : path)
-		fout << it << " ";
-	fout << endl;
-
-}
 
 int main()
 {
@@ -582,6 +421,5 @@ int main()
 	}
 	
 	A_Star();
-	IDA_Star();
 	return 0;
 }
