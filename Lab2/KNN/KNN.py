@@ -5,7 +5,7 @@ def fileread(filename):
     Lines = csv.reader(file)
     Features = []                   #特征向量初始化，逐行
     Lables = []     #标签
-    feact=[]    #降维以后的特征，分别是：白手国王行棋距离，车的行棋距离，
+
     i=0
     for line in Lines:
         if(i!=0):           #第一行是0，1，2，3，4，5，6，无用
@@ -15,18 +15,18 @@ def fileread(filename):
                     line[i]=line[i]-ord('0')
                 else:
                     line[i]=line[i]-ord('a')+10
-            Kingdis = max(abs(line[0]-line[4]),abs(line[1]-line[5]))
-            Cardis = 1
-            if(line[2]!=line[4] and line[3]!=line[5]):
-                Cardis=2
+            #Kingdis = max(abs(line[0]-line[4]),abs(line[1]-line[5]))
+            #Cardis = 1
+            #if(line[2]!=line[4] and line[3]!=line[5]):
+             #   Cardis=2
             #else:  #不考虑三者在同一行并且白国王在中间的情况试试看
-
-            feact.append(Kingdis)
-            feact.append(Cardis)
-            feact.append(line[4])
-            feact.append(line[5])
-            #Features.append(line[0:6])
-            Features.append(feact)
+            #feact = []  # 降维以后的特征，分别是：白手国王行棋距离，车的行棋距离，
+            #feact.append(Kingdis)
+            #feact.append(Cardis)
+            #feact.append(line[4])
+            #feact.append(line[5])
+            Features.append(line[0:6])
+            #Features.append(feact)
             Lables.append(line[-1])
         i = i + 1
     return array(Features),Lables
