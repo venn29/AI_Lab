@@ -5,6 +5,7 @@ def fileread(filename):
     Lines = csv.reader(file)
     Features = []                   #特征向量初始化，逐行
     Lables = []     #标签
+    feact=[]    #降维以后的特征，分别是：白手国王行棋距离，车的行棋距离，
     i=0
     for line in Lines:
         if(i!=0):           #第一行是0，1，2，3，4，5，6，无用
@@ -14,7 +15,8 @@ def fileread(filename):
                     line[i]=line[i]-ord('0')
                 else:
                     line[i]=line[i]-ord('a')+10
-            Features.append(line[0:6])
+            Kdis = max(abs(line[0]-line[4]),abs(line[1]-line[5]))
+            Features.append(line[0:5])
             Lables.append(line[-1])
         i = i + 1
     return array(Features),Lables
